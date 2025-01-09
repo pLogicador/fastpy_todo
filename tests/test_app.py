@@ -84,5 +84,36 @@ def test_delete_user(client):
 def test_delete_user_should_return_not_found(client):
     response = client.delete('/users/5')
 
-    response.status_code == HTTPStatus.NOT_FOUND
+    assert response.status_code == HTTPStatus.NOT_FOUND
     assert response.json() == {'detail': 'This user is not found'}
+
+
+def test_get_user_by_id_should_return_not_found(client):
+    response = client.get('/users/55')
+
+    assert response.status_code == HTTPStatus.NOT_FOUND
+    assert response.json() == {'detail': 'This user is not found'}
+
+
+def test_get_user_by_id(client):
+    # Create the user
+    response = client.post(
+        '/users/',
+        json={
+            'username': 'username',
+            'email': 'test@test.com',
+            'password': 'password',
+        },
+    )
+    assert response.status_code == HTTPStatus.CREATED
+
+    # tests the GET /users/1 endpoint
+
+    response = client.get('/users/1')
+
+    assert response.status_code == HTTPStatus.OK
+    assert response.json() == {
+        'username': 'username',
+        'email': 'test@test.com',
+        'id': 1,
+    }

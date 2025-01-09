@@ -58,3 +58,13 @@ def delete_user(user_id: int):
     del databae[user_id - 1]
 
     return {'message': 'User has been deleted!!'}
+
+
+@app.get('/users/{user_id}', response_model=UserPublic)
+def get_user_by_id(user_id: int):
+    if user_id < 1 or user_id > len(databae):
+        raise HTTPException(
+            status_code=HTTPStatus.NOT_FOUND, detail='This user is not found'
+        )
+
+    return databae[user_id - 1]
