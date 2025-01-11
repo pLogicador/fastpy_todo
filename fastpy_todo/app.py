@@ -1,19 +1,21 @@
 from http import HTTPStatus
 
-from fastapi import FastAPI, HTTPException
+from fastapi import Depends, FastAPI, HTTPException
+from sqlalchemy import select
+from sqlalchemy.orm import Session
 
+from fastpy_todo.database import get_session
+from fastpy_todo.models import User
 from fastpy_todo.schemas import (
     Message,
-    UserDB,
     UserList,
     UserPublic,
     UserSchema,
 )
 
-databae = []
-
-
 app = FastAPI()
+
+databae = []
 
 
 @app.get('/', status_code=HTTPStatus.OK, response_model=Message)
@@ -22,40 +24,74 @@ def read_root():
 
 
 @app.post('/users/', status_code=HTTPStatus.CREATED, response_model=UserPublic)
-def create_user(user: UserSchema):
-    user_with_id = UserDB(id=len(databae) + 1, **user.model_dump())
+def create_user(user: UserSchema, session=Depends(get_session)):
+    db_user = session.scalar(
+        select(User).where(
+            (User.username == user.username) | (User.email == user.email)
+        )
+    )
 
-    databae.append(user_with_id)
+    if db_user:
+        if db_user.username == user.username:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail='Username already exists',
+            )
+        elif db_user.email == user.email:
+            raise HTTPException(
+                status_code=HTTPStatus.BAD_REQUEST,
+                detail='Email already exists',
+            )
 
-    return user_with_id
+    db_user = User(
+        username=user.username, password=user.password, email=user.email
+    )
+    session.add(db_user)
+    session.commit()
+    session.refresh(db_user)
+
+    return db_user
 
 
 @app.get('/users/', response_model=UserList)
-def read_users():
-    return {'users': databae}
+def read_users(
+    limit: int = 10, offset: int = 0, session: Session = Depends(get_session)
+):
+    user = session.scalars(select(User).limit(limit).offset(offset))
+    return {'users': user}
 
 
 @app.put('/users/{user_id}', response_model=UserPublic)
-def update_user(user_id: int, user: UserSchema):
-    if user_id < 1 or user_id > len(databae):
+def update_user(
+    user_id: int, user: UserSchema, session: Session = Depends(get_session)
+):
+    db_user = session.scalar(select(User).where(User.id == user_id))
+
+    if not db_user:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail='This user is not found'
         )
 
-    user_with_id = UserDB(id=user_id, **user.model_dump())
-    databae[user_id - 1] = user_with_id
+    db_user.username = user.username
+    db_user.password = user.password
+    db_user.email = user.email
+    session.commit()
+    session.refresh(db_user)
 
-    return user_with_id
+    return db_user
 
 
 @app.delete('/users/{user_id}', response_model=Message)
-def delete_user(user_id: int):
-    if user_id < 1 or user_id > len(databae):
+def delete_user(user_id: int, session: Session = Depends(get_session)):
+    db_user = session.scalar(select(User).where(User.id == user_id))
+
+    if not db_user:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail='This user is not found'
         )
 
-    del databae[user_id - 1]
+    session.delete(db_user)
+    session.commit()
 
     return {'message': 'User has been deleted!!'}
 
