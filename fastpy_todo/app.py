@@ -97,10 +97,12 @@ def delete_user(user_id: int, session: Session = Depends(get_session)):
 
 
 @app.get('/users/{user_id}', response_model=UserPublic)
-def get_user_by_id(user_id: int):
-    if user_id < 1 or user_id > len(databae):
+def get_user_by_id(user_id: int, session: Session = Depends(get_session)):
+    db_user = session.scalar(select(User).where(User.id == user_id))
+
+    if not db_user:
         raise HTTPException(
             status_code=HTTPStatus.NOT_FOUND, detail='This user is not found'
         )
 
-    return databae[user_id - 1]
+    return db_user

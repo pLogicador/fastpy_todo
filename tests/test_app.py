@@ -31,6 +31,32 @@ def test_create_user(client):
     }
 
 
+def test_create_user_should_return_400_username_exists(client, user):
+    response = client.post(
+        '/users/',
+        json={
+            'username': user.username,
+            'email': 'test@test.com',
+            'password': 'password',
+        },
+    )
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.json() == {'detail': 'Username already exists'}
+
+
+def test_create_user_should_return_400_email_exists(client, user):
+    response = client.post(
+        '/users/',
+        json={
+            'username': 'testusername',
+            'email': user.email,
+            'password': 'password',
+        },
+    )
+    assert response.status_code == HTTPStatus.BAD_REQUEST
+    assert response.json() == {'detail': 'Email already exists'}
+
+
 def test_read_users(client):
     response = client.get('/users/')
 
@@ -62,7 +88,7 @@ def test_update_user(client, user):
     }
 
 
-def test_update_user_should_return_not_fount(client):
+def test_update_user_should_return_not_found(client):
     response = client.put(
         '/users/5',
         json={
@@ -90,31 +116,18 @@ def test_delete_user_should_return_not_found(client):
 
 
 def test_get_user_by_id_should_return_not_found(client):
-    response = client.get('/users/55')
+    response = client.get('/users/5')
 
     assert response.status_code == HTTPStatus.NOT_FOUND
     assert response.json() == {'detail': 'This user is not found'}
 
 
-def test_get_user_by_id(client):
-    # Create the user
-    response = client.post(
-        '/users/',
-        json={
-            'username': 'username',
-            'email': 'test@test.com',
-            'password': 'password',
-        },
-    )
-    assert response.status_code == HTTPStatus.CREATED
-
-    # tests the GET /users/1 endpoint
-
-    response = client.get('/users/1')
+def test_get_user_by_id(client, user):
+    response = client.get('/users/{}'.format(user.id))
 
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {
-        'username': 'username',
-        'email': 'test@test.com',
-        'id': 1,
+        'username': user.username,
+        'email': user.email,
+        'id': user.id,
     }
