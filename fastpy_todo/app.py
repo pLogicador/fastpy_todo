@@ -15,8 +15,6 @@ from fastpy_todo.schemas import (
 
 app = FastAPI()
 
-databae = []
-
 
 @app.get('/', status_code=HTTPStatus.OK, response_model=Message)
 def read_root():
