@@ -71,20 +71,21 @@ def test_read_users_with_user(client, user):
     assert response.json() == {'users': [user_schema]}
 
 
-def test_update_user(client, user):
+def test_update_user(client, user, token):
     response = client.put(
-        '/users/1',
+        f'/users/{user.id}',
+        headers={'Authorization': f'Bearer {token}'},
         json={
             'password': 'newpassword',
             'username': 'newtestusername',
             'email': 'newtest@test.com',
-            'id': 1,
+            'id': user.id,
         },
     )
     assert response.json() == {
         'username': 'newtestusername',
         'email': 'newtest@test.com',
-        'id': 1,
+        'id': user.id,
     }
 
 
@@ -101,8 +102,11 @@ def test_update_user_should_return_not_found(client):
     assert response.json() == {'detail': 'This user is not found'}
 
 
-def test_delete_user(client, user):
-    response = client.delete('/users/1')
+def test_delete_user(client, user, token):
+    response = client.delete(
+        f'/users/{user.id}',
+        headers={'Authorization': f'Bearer {token}'},
+    )
 
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {'message': 'User has been deleted!!'}
@@ -131,3 +135,15 @@ def test_get_user_by_id(client, user):
         'email': user.email,
         'id': user.id,
     }
+
+
+def test_get_token(client, user):
+    response = client.post(
+        '/token',
+        data={'username': user.email, 'password': user.clean_password},
+    )
+    token = response.json()
+
+    assert response.status_code == HTTPStatus.OK
+    assert token['token_type'] == 'Bearer'
+    assert token['access_token']
