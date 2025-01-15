@@ -1,6 +1,7 @@
 from http import HTTPStatus
 
 from fastpy_todo.schemas import UserPublic
+from fastpy_todo.security import create_access_token
 
 
 def test_read_root_should_return_ok_and_hello_world(client):
@@ -31,9 +32,10 @@ def test_create_user(client):
     }
 
 
-def test_create_user_should_return_400_username_exists(client, user):
+def test_create_user_should_return_400_username_exists(client, user, token):
     response = client.post(
         '/users/',
+        headers={'Authorization': f'Bearer {token}'},
         json={
             'username': user.username,
             'email': 'test@test.com',
@@ -44,9 +46,10 @@ def test_create_user_should_return_400_username_exists(client, user):
     assert response.json() == {'detail': 'Username already exists'}
 
 
-def test_create_user_should_return_400_email_exists(client, user):
+def test_create_user_should_return_400_email_exists(client, user, token):
     response = client.post(
         '/users/',
+        headers={'Authorization': f'Bearer {token}'},
         json={
             'username': 'testusername',
             'email': user.email,
@@ -89,19 +92,6 @@ def test_update_user(client, user, token):
     }
 
 
-def test_update_user_should_return_not_found(client):
-    response = client.put(
-        '/users/5',
-        json={
-            'password': 'newpassword',
-            'username': 'newtestusername',
-            'email': 'newtest@test.com',
-        },
-    )
-    assert response.status_code == HTTPStatus.NOT_FOUND
-    assert response.json() == {'detail': 'This user is not found'}
-
-
 def test_delete_user(client, user, token):
     response = client.delete(
         f'/users/{user.id}',
@@ -112,13 +102,6 @@ def test_delete_user(client, user, token):
     assert response.json() == {'message': 'User has been deleted!!'}
 
 
-def test_delete_user_should_return_not_found(client):
-    response = client.delete('/users/5')
-
-    assert response.status_code == HTTPStatus.NOT_FOUND
-    assert response.json() == {'detail': 'This user is not found'}
-
-
 def test_get_user_by_id_should_return_not_found(client):
     response = client.get('/users/5')
 
@@ -126,8 +109,11 @@ def test_get_user_by_id_should_return_not_found(client):
     assert response.json() == {'detail': 'This user is not found'}
 
 
-def test_get_user_by_id(client, user):
-    response = client.get('/users/{}'.format(user.id))
+def test_get_user_by_id(client, user, token):
+    response = client.get(
+        f'/users/{user.id}',
+        headers={'Authorization': f'Bearer {token}'},
+    )
 
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {
@@ -147,3 +133,29 @@ def test_get_token(client, user):
     assert response.status_code == HTTPStatus.OK
     assert token['token_type'] == 'Bearer'
     assert token['access_token']
+
+
+def test_get_current_user_not_found(client):
+    data = {'no-email': 'test'}
+    token = create_access_token(data)
+
+    response = client.delete(
+        '/users/1',
+        headers={'Authorization': f'Bearer {token}'},
+    )
+
+    assert response.status_code == HTTPStatus.UNAUTHORIZED
+    assert response.json() == {'detail': 'Could not validate credentials'}
+
+
+def test_get_current_user_does_not_exists(client):
+    data = {'sub': 'test@example.com'}
+    token = create_access_token(data)
+
+    response = client.delete(
+        '/users/1',
+        headers={'Authorization': f'Bearer {token}'},
+    )
+
+    assert response.status_code == HTTPStatus.UNAUTHORIZED
+    assert response.json() == {'detail': 'Could not validate credentials'}
