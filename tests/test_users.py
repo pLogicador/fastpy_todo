@@ -84,23 +84,12 @@ def test_update_user(client, user, token):
     }
 
 
-def test_update_integrity_error(client, user, token):
-    # Inserting fictitious user
-    client.post(
-        '/users',
-        json={
-            'username': 'testusername',
-            'email': 'test@example.com',
-            'password': 'testpassword',
-        },
-    )
-
-    # Changing the user of the fixture for fictitious user
+def test_update_integrity_error(client, user, other_user, token):
     response_update = client.put(
         f'/users/{user.id}',
         headers={'Authorization': f'Bearer {token}'},
         json={
-            'username': 'testusername',
+            'username': other_user.username,
             'email': 'newtest@example.com',
             'password': 'newtestpassword',
         },
