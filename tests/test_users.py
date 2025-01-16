@@ -71,10 +71,9 @@ def test_update_user(client, user, token):
         f'/users/{user.id}',
         headers={'Authorization': f'Bearer {token}'},
         json={
-            'password': 'newpassword',
             'username': 'newtestusername',
             'email': 'newtest@test.com',
-            'id': user.id,
+            'password': 'newpassword',
         },
     )
     assert response.status_code == HTTPStatus.OK
@@ -82,6 +81,34 @@ def test_update_user(client, user, token):
         'username': 'newtestusername',
         'email': 'newtest@test.com',
         'id': user.id,
+    }
+
+
+def test_update_integrity_error(client, user, token):
+    # Inserting fictitious user
+    client.post(
+        '/users',
+        json={
+            'username': 'testusername',
+            'email': 'test@example.com',
+            'password': 'testpassword',
+        },
+    )
+
+    # Changing the user of the fixture for fictitious user
+    response_update = client.put(
+        f'/users/{user.id}',
+        headers={'Authorization': f'Bearer {token}'},
+        json={
+            'username': 'testusername',
+            'email': 'newtest@example.com',
+            'password': 'newtestpassword',
+        },
+    )
+
+    assert response_update.status_code == HTTPStatus.CONFLICT
+    assert response_update.json() == {
+        'detail': 'Username or Email already exists'
     }
 
 
@@ -93,6 +120,31 @@ def test_delete_user(client, user, token):
 
     assert response.status_code == HTTPStatus.OK
     assert response.json() == {'message': 'User has been deleted!!'}
+
+
+def test_update_user_with_wrong_user(client, other_user, token):
+    response = client.put(
+        f'/users/{other_user.id}',
+        headers={'Authorization': f'Bearer {token}'},
+        json={
+            'username': 'testusername',
+            'email': 'test@test.com',
+            'password': 'password',
+        },
+    )
+
+    assert response.status_code == HTTPStatus.FORBIDDEN
+    assert response.json() == {'detail': 'Not enough permissions'}
+
+
+def test_delete_user_with_wrong_user(client, other_user, token):
+    response = client.delete(
+        f'/users/{other_user.id}',
+        headers={'Authorization': f'Bearer {token}'},
+    )
+
+    assert response.status_code == HTTPStatus.FORBIDDEN
+    assert response.json() == {'detail': 'Not enough permissions'}
 
 
 def test_get_user_by_id_should_return_not_found(client):

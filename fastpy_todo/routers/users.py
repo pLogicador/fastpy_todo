@@ -3,6 +3,7 @@ from typing import Annotated
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
 from fastpy_todo.database import get_session
@@ -67,16 +68,22 @@ def update_user(
     if current_user.id != user_id:
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN,
-            details='Not enough permissions',
+            detail='Not enough permissions',
         )
+    try:
+        current_user.username = user.username
+        current_user.password = get_password_hash(user.password)
+        current_user.email = user.email
+        session.commit()
+        session.refresh(current_user)
 
-    current_user.username = user.username
-    current_user.password = get_password_hash(user.password)
-    current_user.email = user.email
-    session.commit()
-    session.refresh(current_user)
+        return current_user
 
-    return current_user
+    except IntegrityError:
+        raise HTTPException(
+            status_code=HTTPStatus.CONFLICT,
+            detail='Username or Email already exists',
+        )
 
 
 @router.delete('/{user_id}', response_model=Message)
@@ -88,7 +95,7 @@ def delete_user(
     if current_user.id != user_id:
         raise HTTPException(
             status_code=HTTPStatus.FORBIDDEN,
-            details='Not enough permissions',
+            detail='Not enough permissions',
         )
 
     session.delete(current_user)

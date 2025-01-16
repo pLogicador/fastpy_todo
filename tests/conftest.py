@@ -1,6 +1,7 @@
 from contextlib import contextmanager
 from datetime import datetime
 
+import factory
 import pytest
 from fastapi.testclient import TestClient
 from sqlalchemy import create_engine, event
@@ -11,6 +12,15 @@ from fastpy_todo.app import app
 from fastpy_todo.database import get_session
 from fastpy_todo.models import User, table_registry
 from fastpy_todo.security import get_password_hash
+
+
+class UserFactory(factory.Factory):
+    class Meta:
+        model = User
+
+    username = factory.Sequence(lambda n: f'test{n}')
+    email = factory.LazyAttribute(lambda obj: f'{obj.username}@test.com')
+    password = factory.LazyAttribute(lambda obj: f'{obj.username}#password')
 
 
 @pytest.fixture
@@ -43,9 +53,7 @@ def session():
 @pytest.fixture
 def user(session):
     pwd = 'testpass'
-    user = User(
-        username='testname',
-        email='test@test.com',
+    user = UserFactory(
         password=get_password_hash(pwd),
     )
 
@@ -54,6 +62,16 @@ def user(session):
     session.refresh(user)
 
     user.clean_password = pwd  # Monkey Patch
+
+    return user
+
+
+@pytest.fixture
+def other_user(session):
+    user = UserFactory()
+    session.add(user)
+    session.commit()
+    session.refresh(user)
 
     return user
 
