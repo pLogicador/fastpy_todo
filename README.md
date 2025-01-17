@@ -3,11 +3,18 @@
 Este é um projeto de uma API para gerenciamento de tarefas. A aplicação permite operações CRUD (Criar, Ler, Atualizar, Deletar) em tarefas, com autenticação de usuários utilizando JWT.
 
 ## Funcionalidades
+<details>
+  <summary><strong>Veja</strong></summary>
 
 - **Autenticação de Usuários**: Registro e login de usuários com tokens JWT para autenticação segura.
+
 - **Gerenciamento de Tarefas**: Criação, visualização, atualização e exclusão de tarefas associadas a usuários autenticados.
+</details>
 
 ## Dependências
+ 
+<details>
+<summary><strong>Veja</strong></summary>
 
 ### `fastapi`: Framework para construção de APIs.
 ### `sqlalchemy`: ORM para manipulação do banco de dados.
@@ -17,7 +24,7 @@ Este é um projeto de uma API para gerenciamento de tarefas. A aplicação permi
 ### `python-multipart`: Para manipulação de arquivos em formulários.
 ### `pyjwt`: Para gerar e verificar JWTs (tokens de autenticação).
 ### `tzdata`: Para dados de fusos horários.
-
+</details>
 </br>
 
 ## Estrutura do Projeto
