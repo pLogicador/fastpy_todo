@@ -70,6 +70,9 @@ fastpy_todo/
 
 ## Como Executar o Projeto
 
+<details>
+<summary><strong>Veja</strong></summary>
+
 ### 1. Clone o repositório:
 
 ```bash
@@ -117,6 +120,8 @@ Para executar os testes, utilize o `pytest`:
 ```bash
 pytest
 ```
+</details>
+
 </br>
 
 ## Créditos
